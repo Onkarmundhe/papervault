@@ -9,52 +9,28 @@
 </head>
 
 <body>
-  <header>
-    <div class="container">
-      <a href="/" class="brand">
-        <div class="brand-icon">📄</div>
-        <div>
-          <div class="brand-text">PaperVault</div>
-          <div class="brand-tagline">Previous Year Question Papers</div>
-        </div>
-      </a>
-      <nav>
-        <a href="/">Home</a>
-        <span id="userNav"></span>
-        <a href="#" id="logoutNav" onclick="logout(); return false;" style="display: none;">Logout</a>
-      </nav>
-    </div>
-  </header>
+  <div id="authControls" style="position: absolute; top: 1rem; right: 1.5rem; z-index: 1000;">
+    <span id="userNav" style="color: white; font-weight: 500; text-shadow: 0 2px 4px rgba(0,0,0,0.5);"></span>
+    <a href="#" id="logoutNav" onclick="logout(); return false;" class="btn btn-danger"
+      style="display: none; padding: 0.5rem 1rem; font-size: 0.85rem;">Logout</a>
+  </div>
 
   <main class="container">
-    <div id="welcomeGate" class="card hero">
-      <div class="hero-icon">📚</div>
-      <h2>Welcome to PaperVault</h2>
-      <p>Access previous year question papers anytime, anywhere. Your exam prep made easy.</p>
-      <form id="loginForm" onsubmit="return handleLoginSubmit(event)" class="hero-login-form">
-        <div class="form-group">
-          <label for="welcomeUsername">Username</label>
-          <input type="text" id="welcomeUsername" placeholder="username">
-        </div>
-        <div class="form-group">
-          <label for="welcomePassword">Password</label>
-          <input type="password" id="welcomePassword" placeholder="Password">
-        </div>
-      </form>
-      <div id="welcomeAlert"></div>
-      <div class="hero-actions">
-        <button type="button" class="btn btn-primary hero-actions-signin" onclick="handleLoginFromWelcome()">Sign
-          In</button>
-        <p class="auth-links" style="margin-top: 1rem;">
-          Don't have an account? <a href="/signup.html">Sign Up</a><br>
-          <a href="#" onclick="continueAsGuest(); return false;">Continue without sign in</a>
-        </p>
-      </div>
+
+    <div id="landingHero" style="text-align: center; margin-top: 30vh;">
+      <button class="btn btn-primary"
+        style="padding: 1rem 2.5rem; font-size: 1.25rem; box-shadow: 0 4px 15px rgba(0,0,0,0.3);"
+        onclick="showSearch()">
+        Search Question Papers
+      </button>
     </div>
 
     <div id="mainContent" style="display: none;">
       <div class="card">
-        <h2>Find Question Papers</h2>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+          <h2 style="margin: 0;">Find Question Papers</h2>
+          <button class="btn btn-secondary" style="padding: 0.25rem 0.75rem;" onclick="hideSearch()">✕</button>
+        </div>
         <p>Select branch, semester, subject and academic year to view available papers.</p>
         <div class="filter-grid">
           <div class="form-group">
@@ -88,161 +64,121 @@
       <div class="card" id="resultsCard" style="display: none;">
         <h2>Results</h2>
         <ul class="results-list" id="resultsList"></ul>
-        <p class="no-results" id="noResults" style="display: none;">No question papers found. Try different filters.</p>
+        <p class="no-results" id="noResults" style="display: none;">No question papers found. Try different filters.
+        </p>
       </div>
     </div>
-  </main>
 
-  <script src="/static/js/main.js"></script>
-  <script>
-    const API = '/api';
-    let branches = [], semesters = [], subjects = [], years = [];
 
-    function showWelcomeAlert(msg, type) {
-      const el = document.getElementById('welcomeAlert');
-      el.className = 'alert alert-' + (type || 'error');
-      el.textContent = msg;
-      el.style.display = msg ? 'block' : 'none';
-    }
+    <script src="/static/js/main.js"></script>
+    <script>
+      const API = '/api';
+      let branches = [], semesters = [], subjects = [], years = [];
 
-    function handleLoginSubmit(e) {
-      e.preventDefault();
-      handleLoginFromWelcome();
-      return false;
-    }
-
-    function handleLoginFromWelcome() {
-      const username = document.getElementById('welcomeUsername').value.trim();
-      const password = document.getElementById('welcomePassword').value.trim();
-      if (!username || !password) {
-        showWelcomeAlert('Enter username and password.');
-        return;
+      function showSearch() {
+        document.getElementById('landingHero').style.display = 'none';
+        document.getElementById('mainContent').style.display = 'block';
       }
-      fetch(API + '/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-        credentials: 'include'
-      })
-        .then(r => r.json())
-        .then(data => {
-          if (data.error) {
-            showWelcomeAlert(data.error);
-            return;
-          }
-          if (data.role === 'admin') {
-            window.location.href = '/admin.html';
-            return;
-          }
-          sessionStorage.setItem('user', JSON.stringify(data.user));
-          location.reload();
-        })
-        .catch(() => showWelcomeAlert('Something went wrong.'));
-    }
 
-    function continueAsGuest() {
-      sessionStorage.setItem('guest', '1');
-      document.getElementById('welcomeGate').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
-      loadFilters();
-    }
-
-    function loadFilters() {
-      fetch(API + '/branches').then(r => r.json()).then(data => {
-        branches = data;
-        const sel = document.getElementById('branch');
-        sel.innerHTML = '<option value="">-- Select Branch --</option>';
-        data.forEach(b => { sel.innerHTML += `<option value="${b.id}">${b.name}</option>`; });
-      });
-      fetch(API + '/semesters').then(r => r.json()).then(data => {
-        semesters = data;
-        const sel = document.getElementById('semester');
-        sel.innerHTML = '<option value="">-- Select Semester --</option>';
-        data.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.number}</option>`; });
-      });
-      fetch(API + '/years').then(r => r.json()).then(data => {
-        years = data;
-        const sel = document.getElementById('year');
-        sel.innerHTML = '<option value="">-- Select Year --</option>';
-        data.forEach(y => { sel.innerHTML += `<option value="${y}">${y}</option>`; });
-      });
-      document.getElementById('semester').addEventListener('change', loadSubjectsForFilter);
-      document.getElementById('branch').addEventListener('change', loadSubjectsForFilter);
-    }
-
-    function loadSubjectsForFilter() {
-      const semId = document.getElementById('semester').value;
-      const branchId = document.getElementById('branch').value;
-      const subSel = document.getElementById('subject');
-      subSel.innerHTML = '<option value="">-- Select Subject --</option>';
-      if (!semId) return;
-      let url = API + '/subjects?semester_id=' + semId;
-      if (branchId) url += '&branch_id=' + branchId;
-      fetch(url).then(r => r.json()).then(data => {
-        data.forEach(s => { subSel.innerHTML += `<option value="${s.id}">${s.name}</option>`; });
-      });
-    }
-
-    function searchPapers() {
-      const branchId = document.getElementById('branch').value;
-      const semesterId = document.getElementById('semester').value;
-      const subjectId = document.getElementById('subject').value;
-      const year = document.getElementById('year').value;
-      if (!branchId || !semesterId || !subjectId || !year) {
-        alert('Please select all filters: Branch, Semester, Subject and Year.');
-        return;
+      function hideSearch() {
+        document.getElementById('mainContent').style.display = 'none';
+        document.getElementById('landingHero').style.display = 'block';
       }
-      const url = `${API}/papers?branch_id=${branchId}&semester_id=${semesterId}&subject_id=${subjectId}&year=${encodeURIComponent(year)}`;
-      fetch(url).then(r => r.json()).then(data => {
-        const list = document.getElementById('resultsList');
-        const card = document.getElementById('resultsCard');
-        const noRes = document.getElementById('noResults');
-        card.style.display = 'block';
-        list.innerHTML = '';
-        if (!data || data.length === 0) {
-          noRes.style.display = 'block';
+
+      document.addEventListener('DOMContentLoaded', function () {
+        loadFilters();
+
+        const user = sessionStorage.getItem('user');
+        if (user) {
+          const u = JSON.parse(user);
+          document.getElementById('userNav').innerHTML = `<span style="margin-right:1rem; color: white;">${u.username}</span>`;
+          document.getElementById('logoutNav').style.display = 'inline-block';
+        } else {
+          document.getElementById('userNav').innerHTML = `
+            <a href="/login.html" class="btn btn-secondary" style="background: rgba(255,255,255,0.2); color: white; border: 1px solid rgba(255,255,255,0.5); backdrop-filter: blur(4px);">Sign In</a>
+            <a href="/signup.html" class="btn btn-primary" style="margin-left: 0.5rem;">Sign Up</a>
+          `;
+          document.getElementById('logoutNav').style.display = 'none';
+        }
+      });
+
+      function loadFilters() {
+        fetch(API + '/branches').then(r => r.json()).then(data => {
+          branches = data;
+          const sel = document.getElementById('branch');
+          sel.innerHTML = '<option value="">-- Select Branch --</option>';
+          data.forEach(b => { sel.innerHTML += `<option value="${b.id}">${b.name}</option>`; });
+        });
+        fetch(API + '/semesters').then(r => r.json()).then(data => {
+          semesters = data;
+          const sel = document.getElementById('semester');
+          sel.innerHTML = '<option value="">-- Select Semester --</option>';
+          data.forEach(s => { sel.innerHTML += `<option value="${s.id}">${s.number}</option>`; });
+        });
+        fetch(API + '/years').then(r => r.json()).then(data => {
+          years = data;
+          const sel = document.getElementById('year');
+          sel.innerHTML = '<option value="">-- Select Year --</option>';
+          data.forEach(y => { sel.innerHTML += `<option value="${y}">${y}</option>`; });
+        });
+        document.getElementById('semester').addEventListener('change', loadSubjectsForFilter);
+        document.getElementById('branch').addEventListener('change', loadSubjectsForFilter);
+      }
+
+      function loadSubjectsForFilter() {
+        const semId = document.getElementById('semester').value;
+        const branchId = document.getElementById('branch').value;
+        const subSel = document.getElementById('subject');
+        subSel.innerHTML = '<option value="">-- Select Subject --</option>';
+        if (!semId) return;
+        let url = API + '/subjects?semester_id=' + semId;
+        if (branchId) url += '&branch_id=' + branchId;
+        fetch(url).then(r => r.json()).then(data => {
+          data.forEach(s => { subSel.innerHTML += `<option value="${s.id}">${s.name}</option>`; });
+        });
+      }
+
+      function searchPapers() {
+        const branchId = document.getElementById('branch').value;
+        const semesterId = document.getElementById('semester').value;
+        const subjectId = document.getElementById('subject').value;
+        const year = document.getElementById('year').value;
+        if (!branchId || !semesterId || !subjectId || !year) {
+          alert('Please select all filters: Branch, Semester, Subject and Year.');
           return;
         }
-        noRes.style.display = 'none';
-        data.forEach(p => {
-          const li = document.createElement('li');
-          li.innerHTML = `
+        const url = `${API}/papers?branch_id=${branchId}&semester_id=${semesterId}&subject_id=${subjectId}&year=${encodeURIComponent(year)}`;
+        fetch(url).then(r => r.json()).then(data => {
+          const list = document.getElementById('resultsList');
+          const card = document.getElementById('resultsCard');
+          const noRes = document.getElementById('noResults');
+          card.style.display = 'block';
+          list.innerHTML = '';
+          if (!data || data.length === 0) {
+            noRes.style.display = 'block';
+            return;
+          }
+          noRes.style.display = 'none';
+          data.forEach(p => {
+            const li = document.createElement('li');
+            li.innerHTML = `
             <div class="results-info">
               <strong>${p.subject_name}</strong> - ${p.branch_name} | Sem ${p.semester_num} | ${p.academic_year}
               ${p.description ? '<br><small>' + p.description + '</small>' : ''}
             </div>
             <a href="${API}/papers/download/${p.id}" class="btn btn-success" download>Download</a>
           `;
-          list.appendChild(li);
+            list.appendChild(li);
+          });
         });
-      });
-    }
-
-    if (sessionStorage.getItem('guest') === '1' || sessionStorage.getItem('user')) {
-      document.getElementById('welcomeGate').style.display = 'none';
-      document.getElementById('mainContent').style.display = 'block';
-      loadFilters();
-    }
-
-    document.addEventListener('DOMContentLoaded', function () {
-      if (sessionStorage.getItem('guest') !== '1' && !sessionStorage.getItem('user')) return;
-      const user = sessionStorage.getItem('user');
-      if (user) {
-        const u = JSON.parse(user);
-        document.getElementById('userNav').innerHTML = `<span style="margin-right:0.5rem;">${u.username}</span>`;
-        document.getElementById('logoutNav').style.display = 'inline';
-      } else {
-        document.getElementById('userNav').innerHTML = '<a href="/login.html">Sign In</a> <a href="/signup.html">Sign Up</a>';
-        document.getElementById('logoutNav').style.display = 'none';
       }
-    });
 
-    function logout() {
-      sessionStorage.removeItem('user');
-      sessionStorage.removeItem('guest');
-      location.reload();
-    }
-  </script>
+      function logout() {
+        sessionStorage.removeItem('user');
+        sessionStorage.removeItem('guest');
+        location.reload();
+      }
+    </script>
 </body>
 
 </html>
